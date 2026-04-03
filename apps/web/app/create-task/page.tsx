@@ -10,7 +10,7 @@ export default function CreateTask() {
   const [description, setDescription] = useState('');
   const [reward, setReward] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { signTransactions, activeAccount, activeAddress } = useWallet();
   const router = useRouter();
 
@@ -19,11 +19,8 @@ export default function CreateTask() {
       alert("Please connect your wallet first and ensure an active address is selected");
       return;
     }
-
     try {
       setLoading(true);
-      
-      // 1. Create task in DB (State: OPEN)
       const res = await fetchWithAuth("/tasks/", {
         method: 'POST',
         body: JSON.stringify({ title, description, reward: parseFloat(reward) })
@@ -32,26 +29,22 @@ export default function CreateTask() {
       const task = await res.json();
       if (!task || !task.id) throw new Error("Backend did not return a valid task ID");
 
-      // 2. Generate atomic funding tx in ALGO (reward * 1_000_000)
       const microAlgos = Math.floor(parseFloat(reward) * 1000000);
       const txns = await constructFundingTxGroup(activeAddress!, task.id, microAlgos);
 
-      // 3. Sign transaction
       const encodedTxns = txns.map(tx => tx.toByte() as Uint8Array);
       const signedTxns = await signTransactions(encodedTxns);
 
       const validSignedTxns = signedTxns.filter(tx => tx !== null) as Uint8Array[];
       const response = await algodClient.sendRawTransaction(validSignedTxns).do();
       const txId = typeof response === 'string' ? response : (response as any).txId || (response as any).txid;
-      
-      // 5. Notify backend to update status to FUNDED
+
       const fundRes = await fetchWithAuth(`/tasks/${task.id}/fund`, {
         method: 'POST',
-        body: JSON.stringify({ tx_hash: txId, escrow_app_id: ESCROW_APP_ID }) // You would get app_id dynamically or securely
+        body: JSON.stringify({ tx_hash: txId, escrow_app_id: ESCROW_APP_ID })
       });
-
       if (!fundRes.ok) throw new Error("Failed to verify funding on backend");
-      
+
       alert("Task funded successfully! TxId: " + txId);
       router.push('/tasks');
     } catch (err: any) {
@@ -63,50 +56,76 @@ export default function CreateTask() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Create New Task</h1>
-      
-      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-xl space-y-6">
+    <div className="max-w-2xl mx-auto py-4 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">Create a Bounty</h1>
+        <p className="text-zinc-400 text-sm mt-1">Post a task and lock reward funds in a trustless smart contract.</p>
+      </div>
+
+      {/* Form card */}
+      <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-7 space-y-6">
+
+        {/* Title */}
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-zinc-300">Task Title</label>
-          <input 
-            type="text" 
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500" 
-            placeholder="e.g. Build a Web3 Login component" 
-            value={title} onChange={e => setTitle(e.target.value)} />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-zinc-300">Description</label>
-          <textarea 
-            className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500" 
-            placeholder="Describe the requirements..." 
-            value={description} onChange={e => setDescription(e.target.value)} />
+          <label className="text-sm font-medium text-zinc-300">Task Title</label>
+          <input
+            type="text"
+            className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-3 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.06] transition-all"
+            placeholder="e.g. Build a Web3 Login component"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+          />
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        {/* Description */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-zinc-300">Description</label>
+          <textarea
+            className="w-full h-32 bg-white/[0.04] border border-white/8 rounded-xl px-4 py-3 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.06] transition-all resize-none"
+            placeholder="Describe the requirements clearly..."
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+        </div>
+
+        {/* Reward + Deadline */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-zinc-300">Reward (ALGO)</label>
-            <input 
-              type="number" 
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500" 
-              placeholder="100" 
-              value={reward} onChange={e => setReward(e.target.value)} />
+            <label className="text-sm font-medium text-zinc-300">Reward (ALGO)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">◎</span>
+              <input
+                type="number"
+                className="w-full bg-white/[0.04] border border-white/8 rounded-xl pl-8 pr-4 py-3 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-all"
+                placeholder="0.5"
+                value={reward}
+                onChange={e => setReward(e.target.value)}
+              />
+            </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-zinc-300">Deadline (Days)</label>
-            <input 
-              type="number" 
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500" 
-              placeholder="7" />
+            <label className="text-sm font-medium text-zinc-300">Deadline (Days)</label>
+            <input
+              type="number"
+              className="w-full bg-white/[0.04] border border-white/8 rounded-xl px-4 py-3 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-purple-500/50 transition-all"
+              placeholder="7"
+            />
           </div>
         </div>
 
-        <button 
-          onClick={handleCreateAndFund} 
+        {/* Info box */}
+        <div className="rounded-xl border border-purple-500/15 bg-purple-500/5 p-4 text-xs text-purple-300 leading-relaxed">
+          💡 Funds are locked on-chain in an Algorand smart contract. Payment is released automatically after your work is verified.
+        </div>
+
+        {/* Submit */}
+        <button
+          onClick={handleCreateAndFund}
           disabled={loading}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg font-bold text-white transition-colors mt-4">
-          {loading ? 'Processing...' : 'Lock Funds & Create Task'}
+          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 disabled:opacity-50 font-semibold text-white transition-opacity shadow-lg shadow-purple-900/20"
+        >
+          {loading ? '⏳ Processing...' : '🔒 Lock Funds & Create Task'}
         </button>
       </div>
     </div>

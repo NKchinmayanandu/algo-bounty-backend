@@ -7,7 +7,8 @@ const algodPort = 443;
 export const algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
 
 // You must set this manually from your deployment
-export const ESCROW_APP_ID = parseInt(process.env.NEXT_PUBLIC_ESCROW_APP_ID || "12345678"); 
+const rawAppId = process.env.NEXT_PUBLIC_ESCROW_APP_ID || "0";
+export const ESCROW_APP_ID = parseInt(rawAppId); 
 
 export const constructFundingTxGroup = async (
   senderAddress: string,
@@ -16,21 +17,28 @@ export const constructFundingTxGroup = async (
 ) => {
   const suggestedParams = await algodClient.getTransactionParams().do();
   
-  // Actually, we don't know the app address locally without resolving. 
-  // Let's assume the user has the APP ID available in ENV.
+  if (!ESCROW_APP_ID || ESCROW_APP_ID <= 0) {
+    throw new Error("Invalid ESCROW_APP_ID. Please set NEXT_PUBLIC_ESCROW_APP_ID in your .env.local file.");
+  }
+
+  if (!senderAddress) {
+    throw new Error("Sender address is missing.");
+  }
+
   const appAddress = algosdk.getApplicationAddress(ESCROW_APP_ID);
+  if (!appAddress) {
+    throw new Error(`Could not calculate application address for App ID: ${ESCROW_APP_ID}`);
+  }
 
   // Transaction 1: Payment to app
   const ptxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-    from: senderAddress,
-    to: appAddress,
+    sender: senderAddress,
+    receiver: appAddress,
     amount: rewardMicroAlgos,
     suggestedParams
   });
 
   // Transaction 2: Application call to "create_task"
-  // Signature in beaker for create_task: create_task(uint64,address,uint64)
-  // We mock a standard AppCall since resolving ABI dynamically takes more setup.
   const method = new algosdk.ABIMethod({
     name: "create_task",
     args: [
@@ -42,7 +50,7 @@ export const constructFundingTxGroup = async (
   });
 
   const appCallTxn = algosdk.makeApplicationCallTxnFromObject({
-    from: senderAddress,
+    sender: senderAddress,
     appIndex: ESCROW_APP_ID,
     onComplete: algosdk.OnApplicationComplete.NoOpOC,
     suggestedParams,
@@ -51,6 +59,9 @@ export const constructFundingTxGroup = async (
       algosdk.encodeUint64(taskId),
       algosdk.decodeAddress(senderAddress).publicKey,
       algosdk.encodeUint64(rewardMicroAlgos)
+    ],
+    boxes: [
+      { appIndex: ESCROW_APP_ID, name: algosdk.encodeUint64(taskId) }
     ]
   });
 
@@ -74,7 +85,7 @@ export const constructClaimTx = async (senderAddress: string, taskId: number) =>
   });
 
   const tx = algosdk.makeApplicationCallTxnFromObject({
-    from: senderAddress,
+    sender: senderAddress,
     appIndex: ESCROW_APP_ID,
     onComplete: algosdk.OnApplicationComplete.NoOpOC,
     suggestedParams,
@@ -82,6 +93,9 @@ export const constructClaimTx = async (senderAddress: string, taskId: number) =>
       method.getSelector(),
       algosdk.encodeUint64(taskId),
       algosdk.decodeAddress(senderAddress).publicKey
+    ],
+    boxes: [
+      { appIndex: ESCROW_APP_ID, name: algosdk.encodeUint64(taskId) }
     ]
   });
 
@@ -100,13 +114,16 @@ export const constructReleaseTx = async (senderAddress: string, taskId: number) 
   });
 
   const tx = algosdk.makeApplicationCallTxnFromObject({
-    from: senderAddress,
+    sender: senderAddress,
     appIndex: ESCROW_APP_ID,
     onComplete: algosdk.OnApplicationComplete.NoOpOC,
     suggestedParams,
     appArgs: [
       method.getSelector(),
       algosdk.encodeUint64(taskId)
+    ],
+    boxes: [
+      { appIndex: ESCROW_APP_ID, name: algosdk.encodeUint64(taskId) }
     ]
   });
 

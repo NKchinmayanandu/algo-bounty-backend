@@ -11,12 +11,12 @@ export default function CreateTask() {
   const [reward, setReward] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { signTransactions, activeAccount } = useWallet();
+  const { signTransactions, activeAccount, activeAddress } = useWallet();
   const router = useRouter();
 
   const handleCreateAndFund = async () => {
-    if (!activeAccount) {
-      alert("Please connect your wallet first");
+    if (!activeAccount || !activeAddress) {
+      alert("Please connect your wallet first and ensure an active address is selected");
       return;
     }
 
@@ -30,17 +30,19 @@ export default function CreateTask() {
       });
       if (!res.ok) throw new Error("Failed to create task");
       const task = await res.json();
+      if (!task || !task.id) throw new Error("Backend did not return a valid task ID");
 
       // 2. Generate atomic funding tx in ALGO (reward * 1_000_000)
       const microAlgos = Math.floor(parseFloat(reward) * 1000000);
-      const txns = await constructFundingTxGroup(activeAccount.address, task.id, microAlgos);
+      const txns = await constructFundingTxGroup(activeAddress!, task.id, microAlgos);
 
       // 3. Sign transaction
       const encodedTxns = txns.map(tx => tx.toByte() as Uint8Array);
       const signedTxns = await signTransactions(encodedTxns);
 
-      // 4. Send transaction
-      const { txId } = await algodClient.sendRawTransaction(signedTxns).do();
+      const validSignedTxns = signedTxns.filter(tx => tx !== null) as Uint8Array[];
+      const response = await algodClient.sendRawTransaction(validSignedTxns).do();
+      const txId = typeof response === 'string' ? response : (response as any).txId || (response as any).txid;
       
       // 5. Notify backend to update status to FUNDED
       const fundRes = await fetchWithAuth(`/tasks/${task.id}/fund`, {

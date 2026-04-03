@@ -11,14 +11,15 @@ def verify_github_repo(repo_url: str) -> bool:
     Verifies that a valid github repository exists, is public, and has a README.
     Format should be: https://github.com/owner/repo
     """
-    if "github.com/" not in repo_url:
-        return False
-        
     parts = repo_url.rstrip("/").split("github.com/")
     if len(parts) < 2:
         return False
         
-    repo_path = parts[1]
+    repo_path_parts = "".join(parts[1:]).strip("/").split("/")
+    if len(repo_path_parts) < 2:
+        return False
+        
+    repo_path = f"{repo_path_parts[0]}/{repo_path_parts[1]}"
     api_url = f"https://api.github.com/repos/{repo_path}"
     
     headers = {}

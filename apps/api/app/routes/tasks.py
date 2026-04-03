@@ -108,7 +108,7 @@ async def submit_task(task_id: int, payload: TaskSubmission, current_user: User 
     return submission
 
 @router.post("/{task_id}/verify", response_model=TaskBase)
-async def verify_task(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def verify_task(task_id: int, manual: bool = False, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -117,13 +117,18 @@ async def verify_task(task_id: int, current_user: User = Depends(get_current_use
     if task.status != TaskStatusEnum.SUBMITTED:
         raise HTTPException(status_code=400, detail="Task is not SUBMITTED")
         
-    is_valid = verify_github_repo(task.submission.repo_url)
-    if is_valid:
+    if manual:
         task.submission.verification_status = VerificationStatusEnum.VERIFIED
         task.status = TaskStatusEnum.VERIFIED
+        is_valid = True
     else:
-        task.submission.verification_status = VerificationStatusEnum.FAILED
-        
+        is_valid = verify_github_repo(task.submission.repo_url)
+        if is_valid:
+            task.submission.verification_status = VerificationStatusEnum.VERIFIED
+            task.status = TaskStatusEnum.VERIFIED
+        else:
+            task.submission.verification_status = VerificationStatusEnum.FAILED
+            
     db.commit()
     db.refresh(task)
     await manager.broadcast({"event": "task_verified", "task_id": task.id, "status": is_valid})

@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     rating_avg: float
     rating_count: int
     created_at: datetime
+    wallet_address: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 # Task Schemas

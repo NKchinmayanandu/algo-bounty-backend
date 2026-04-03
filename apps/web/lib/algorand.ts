@@ -102,7 +102,7 @@ export const constructClaimTx = async (senderAddress: string, taskId: number) =>
   return [tx];
 };
 
-export const constructReleaseTx = async (senderAddress: string, taskId: number) => {
+export const constructReleaseTx = async (senderAddress: string, workerAddress: string, taskId: number) => {
   const suggestedParams = await algodClient.getTransactionParams().do();
   
   const method = new algosdk.ABIMethod({
@@ -122,6 +122,7 @@ export const constructReleaseTx = async (senderAddress: string, taskId: number) 
       method.getSelector(),
       algosdk.encodeUint64(taskId)
     ],
+    accounts: [workerAddress], // Must include worker address for inner transaction
     boxes: [
       { appIndex: ESCROW_APP_ID, name: algosdk.encodeUint64(taskId) }
     ]

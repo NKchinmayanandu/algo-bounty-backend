@@ -43,40 +43,65 @@ export default function History() {
     }
   }
 
-  const handleVerify = async (taskId: number) => {
-    try {
-      const res = await fetchWithAuth(`/tasks/${taskId}/verify`, { method: "POST" })
-      const data = await res.json()
-      if(data.status === "VERIFIED") {
-        alert("Verification successful!");
-      } else {
-        alert("Verification failed or repository is not public with a README.");
-      }
-      loadHistory();
-    } catch(e) {
-      alert("Verification failed");
-    }
-  }
-
-  const handleRelease = async (task: any) => {
+  const handleVerifyAndRelease = async (task: any) => {
     if (!activeAccount) {
       alert("Connect wallet to sign release transaction!");
       return;
     }
+    
     try {
-      // Release is signed by Creator
-      const txns = await constructReleaseTx(activeAccount.address, task.id);
+      let isVerified = false;
+      const res = await fetchWithAuth(`/tasks/${task.id}/verify`, { method: "POST" })
+      const data = await res.json()
+      
+      if(data.status === "VERIFIED") {
+        isVerified = true;
+      } else {
+        const detailRes = await fetchWithAuth(`/tasks/${task.id}`);
+        if(detailRes.ok) {
+           const detail = await detailRes.json();
+           const repoUrl = detail.submission?.repo_url || "Unknown Repo URL";
+           
+           if(window.confirm(`Automated verification failed.\n\nThe worker submitted the following URL:\n${repoUrl}\n\nDo you want to manually approve AND release funds?`)) {
+             const manualRes = await fetchWithAuth(`/tasks/${task.id}/verify?manual=true`, { method: "POST" });
+             const manualData = await manualRes.json();
+             if(manualData.status === "VERIFIED") {
+                isVerified = true;
+             }
+           }
+        }
+      }
+
+      if (!isVerified) {
+          alert("Task is not verified. Payment will not be released.");
+          loadHistory(); // Refresh just in case status changed
+          return;
+      }
+
+      // 2. Fetch details to get worker address for the inner transaction routing
+      const detailResForWorker = await fetchWithAuth(`/tasks/${task.id}`);
+      const detailForWorker = await detailResForWorker.json();
+      const workerAddress = detailForWorker.assignee?.wallet_address;
+      
+      if (!workerAddress) {
+          alert("Error: Worker does not have a wallet address linked.");
+          return;
+      }
+
+      // 3. Prompt Algorand Wallet to release funds securely
+      alert("Verification complete! Please approve the final release of funds in your wallet.");
+      const txns = await constructReleaseTx(activeAccount.address, workerAddress, task.id);
       const encodedTxns = txns.map(tx => tx.toByte() as Uint8Array);
       const signedTxns = await signTransactions(encodedTxns);
       await algodClient.sendRawTransaction(signedTxns).do();
       
-      const res = await fetchWithAuth(`/tasks/${task.id}/release`, { method: "POST" })
-      if(res.ok) {
+      const releaseRes = await fetchWithAuth(`/tasks/${task.id}/release`, { method: "POST" })
+      if(releaseRes.ok) {
         alert("Payment Released Successfully!");
         loadHistory();
       }
     } catch(e: any) {
-      alert("Release failed: " + e.message);
+      alert("Process failed: " + e.message);
     }
   }
 
@@ -110,21 +135,19 @@ export default function History() {
                   <td className="p-4">{task.reward} ALGO</td>
                   <td className="p-4 flex gap-2">
                     {/* Worker Action */}
-                    {!isCreator && task.status === 'CLAIMED' && (
+                    {!isCreator && (task.status === 'CLAIMED' || task.status === 'SUBMITTED') && (
                       <button onClick={() => handleSubmit(task.id)} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm text-white">
-                        Submit Work
+                        {task.status === 'SUBMITTED' ? 'Resubmit Work' : 'Submit Work'}
                       </button>
                     )}
                     {/* Creator Actions */}
                     {isCreator && task.status === 'SUBMITTED' && (
-                      <button onClick={() => handleVerify(task.id)} className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-sm text-white">
-                        Verify Work
+                      <button onClick={() => handleVerifyAndRelease(task)} className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm text-white">
+                        Verify & Release Payment
                       </button>
                     )}
-                    {isCreator && task.status === 'VERIFIED' && (
-                      <button onClick={() => handleRelease(task)} className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm text-white">
-                        Release Payment
-                      </button>
+                    {task.status === 'VERIFIED' && (
+                      <span className="text-zinc-500 text-sm">Payment Completed</span>
                     )}
                     {task.status === 'PAID' && (
                       <span className="text-zinc-500 text-sm">Completed</span>

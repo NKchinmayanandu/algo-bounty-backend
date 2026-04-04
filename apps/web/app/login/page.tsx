@@ -13,14 +13,15 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/auth/login", {
+      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       if (res.ok) {
         const data = await res.json();
-        const meRes = await fetch("http://localhost:8000/auth/me", {
+        const meRes = await fetch(`${BASE_URL}/auth/me`, {
           headers: { 'Authorization': `Bearer ${data.access_token}` }
         });
         const userObj = await meRes.json();

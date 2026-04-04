@@ -24,7 +24,8 @@ export default function TasksPage() {
   const { signTransactions, activeAccount } = useWallet()
 
   const loadTasks = useCallback(() => {
-    fetch('http://localhost:8000/tasks/')
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    fetch(`${BASE_URL}/tasks/`)
       .then(res => res.json())
       .then(data => { if(Array.isArray(data)) setTasks(data) })
       .catch(console.error)

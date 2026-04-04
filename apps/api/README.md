@@ -5,33 +5,30 @@ The "Agent Layer" that bridges the gap between Web2 work delivery (GitHub) and W
 ## 🛠 Tech Stack
 
 - **Framework:** FastAPI
-- **Language:** Python 3
-- **Database:** Supabase (PostgreSQL)
-- **SDKs:** Algosdk, GitHub Octokit
+- **Language:** Python 3.10+
+- **Database:** Supabase (PostgreSQL with SQLAlchemy)
+- **Real-Time:** WebSockets (ConnectionManager Broadcast System)
+- **SDKs:** Algosdk, PyGitHub
 
 ## ✨ Key Features
 
-- **Automated Verification:** Checks GitHub Pull Request or Repository existence before enabling on-chain release.
-- **Micro-History Syncing:** Fast Supabase indexing of active tasks and user ratings.
-- **Status Machine Logic:** Ensures tasks only move from `OPEN` to `PAID` through strict validation.
-- **RESTful API:** Structured endpoints for user activity, histories, and task detail verification.
-
-## 🔗 Endpoints
-
-- **`/auth/`**: User login, registration, and wallet linking.
-- **`/tasks/`**: Creation, claiming, and submitting GitHub repo links.
-- **`/verify/`**: Core agentic logic for repository access checks.
+- **⚡ Live Event Broadcasting:** Uses a `ConnectionManager` to push `task_created`, `task_funded`, and `task_paid` events to the frontend via WebSockets.
+- **🛡️ Escrow Guard Logic:** Re-validates transaction hashes from the Algorand blockchain before updating local database status.
+- **🤖 Automated Verification:** Checks GitHub Pull Request or Repository existence before enabling on-chain release.
+- **🚀 Cloud Optimized:** Configured for Render/Railway with explicit SSL engine handling for Postgres.
 
 ## 📂 Folder Structure
 
 ```text
 apps/api/
 ├── app/
-│   ├── routes/      # Verification, Tasks, and Auth endpoints
-│   ├── services/    # GitHub API Bridge and Database Logic
+│   ├── routes/      # Auth, Tasks, User endpoints
+│   ├── services/    # GitHub API Bridge, Task Business Logic
+│   ├── db/          # SQLAlchemy session and SSL config
 │   ├── models/      # Pydantic Schemas and DB Models
-│   └── main.py      # FastAPI Initialization
-└── requirements.txt # Python dependencies
+│   ├── realtime/    # WebSocket Connection Manager logic
+│   └── main.py      # FastAPI Initialization & CORS
+└── requirements.txt # Python dependencies (pinned for cloud)
 ```
 
 ## 🚀 Run Locally
@@ -42,8 +39,10 @@ apps/api/
    ```
 2. Set Environment Variables in `.env`:
    ```bash
-   DATABASE_URL=your_supabase_url
+   DATABASE_URL=postgresql+psycopg2://...
+   JWT_SECRET=your_jwt_secret
    GITHUB_TOKEN=your_github_pat
+   ALGORAND_NODE_URL=https://testnet-api.algonode.cloud
    ```
 3. Start the server:
    ```bash

@@ -1,26 +1,28 @@
-# 🔗 Bounty Escrow Agent
+# 🔗 Bounty Escrow Agent: Trustless Task Lifecycle
 
 **Eliminate trust issues in open bounty platforms with automated escrow agents. Secure, transparent, and fully on-chain.**
 
-The Bounty Escrow Agent is a decentralized platform that replaces manual payment disputes with an automated, agent-driven verification pipeline. By locking funds in an Algorand smart contract upfront and auto-verifying work via the GitHub API, we create a "Trustless Lifecycle" for digital labor.
+The Bounty Escrow Agent is a decentralized platform that replaces manual payment disputes with an automated, agent-driven verification pipeline. By locking funds in an Algorand smart contract upfront and using real-time WebSockets to sync state, we create a "Trustless Lifecycle" for digital labor.
 
 ---
 
 ## 🛠 Tech Stack
 
-[![Frontend](https://img.shields.io/badge/Frontend-Next.js-black?style=for-the-badge)](apps/web/README.md)
-[![Backend](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge)](apps/api/README.md)
-[![Smart Contracts](https://img.shields.io/badge/Smart%20Contracts-Algorand-blue?style=for-the-badge)](contracts/README.md)
+[![Frontend](https://img.shields.io/badge/Frontend-Next.js%2014-black?style=for-the-badge&logo=next.js)](apps/web/README.md)
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)](apps/api/README.md)
+[![Smart Contracts](https://img.shields.io/badge/Smart%20Contracts-Algorand%20PyTeal-blue?style=for-the-badge&logo=algorand)](contracts/README.md)
+[![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- **On-Chain Escrow:** Rewards are locked upfront in a tamper-proof contract.
-- **Automated Payouts:** Funds are released the moment the Work Agent verifies the GitHub repository.
-- **Zero-Friction UX:** One-click "Verify & Release" simplifies complex blockchain transactions.
-- **Micro-History Tracking:** Immutable record of task creation, claiming, and successful completion.
-- **Seamless Wallet Integration:** Native support for Pera and Defly wallets.
+- **🛡️ On-Chain Trustless Escrow:** Rewards are locked in an Algorand Smart Contract (App ID 758200883) at creation. No middleman holds the funds.
+- **⚡ Real-Time Synchronization:** Integrated **WebSockets** ensure that when a task is funded, claimed, or paid, every user's dashboard updates instantly without refreshing.
+- **🤖 Automated Verification:** The backend agent validates GitHub repository submissions before allowing the "Release Payment" step.
+- **📱 Pera Wallet Integration:** Seamlessly connect via the **Pera Wallet Mobile App** (Testnet mode) to sign transactions securely.
+- **💎 Premium Dark UI:** A state-of-the-art glassmorphism design with a unified purple/pink aesthetic across the entire dashboard.
+- **📊 Micro-History Tracking:** Immutable audit logs for every state change in the task lifecycle.
 
 ---
 
@@ -29,62 +31,57 @@ The Bounty Escrow Agent is a decentralized platform that replaces manual payment
 ```bash
 .
 ├── apps/
-│   ├── web/        # Frontend (Next.js 14, Tailwind, TypeScript)
-│   └── api/        # Backend (FastAPI, Python, Supabase integration)
-├── contracts/      # Smart Contracts (PyTeal, Beaker, Algorand Testnet)
+│   ├── web/        # Frontend (Next.js 14, WebSocket Hook, Pera Integration)
+│   └── api/        # Backend (FastAPI, ConnectionManager, SQLAlchemy)
+├── contracts/      # Smart Contracts (PyTeal, Beaker, State Machine Logic)
 ├── README.md       # Root Documentation
 └── package.json    # Workspace Definitions
 ```
 
 ---
 
-## 🌍 Real-Life Usage
+## 🔄 The Trustless Workflow
 
-**The Problem:** Freelance work suffers from "Payment Anxiety" for workers and "Vaporware Risk" for creators.
-**The Solution:**
-- **Who uses it:** Open-source maintainers, bug-bounty hunters, and micro-freelancers.
-- **Why Blockchain:** We use Algorand to ensure transparency and instant finality. Funds are never held by a central company, giving power back to the individuals.
-- **The Agent:** Our backend acts as an "Agent" that objectively verifies the work, leaving no room for human bias or manual payout delays.
-
----
-
-## 🔄 High-Level Flow (How It Works)
-
-```mermaid
-graph LR
-    User([User]) --> Web([Next.js Frontend])
-    Web --> API([FastAPI Backend])
-    API --> GH([GitHub API])
-    Web --> SC([Algorand Smart Contract])
-    SC --> BC([Algorand Blockchain])
-```
-
-1. **Post:** Creator creates a task and funds the Algorand Smart Contract.
-2. **Claim:** Worker claims the task and starts working.
-3. **Submit:** Worker submits a GitHub repo URL.
-4. **Verify:** Backend agent checks the repo and repository metadata.
-5. **Release:** Creator approves, and the contract instantly releases funds to the worker.
+1.  **POST & FUND:** A Creator posts a task. They must fund the task by sending ALGO to the Smart Contract via **Pera Wallet**.
+2.  **CLAIM:** A Worker finds an active task and "Claims" it. This locks their address as the official worker on the blockchain.
+3.  **SUBMIT:** Once work is done, the Worker submits their GitHub repository URL.
+4.  **VERIFY & RELEASE:** The Creator triggers the "Verify" agent. If the GitHub repo exists and the check passes, the Creator signs the final "Release" transaction, and the Smart Contract instantly pays the Worker.
 
 ---
 
 ## 🚀 Getting Started
 
-Quickly clone and set up the development environment:
+### **Prerequisites**
+- **Pera Wallet App:** Download on your phone and switch it to **Testnet** mode (Developer Settings).
+- **Testnet ALGO:** Get some free coins from the [Algorand Testnet Faucet](https://bank.testnet.algorand.network/).
+- **Node.js & Python 3.10+**
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/your-repo/bounty-escrow-agent
+### **Installation**
 
-# 2. Setup Backend & Smart Contracts
-cd contracts && pip install -r requirements.txt
-cd ../apps/api && pip install -r requirements.txt
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/Yaseen-711/algo-bounty.git
+    cd algo-bounty
+    ```
 
-# 3. Setup Frontend
-cd ../web && npm install
-```
+2.  **Backend Setup (`apps/api`):**
+    ```bash
+    cd apps/api
+    pip install -r requirements.txt
+    # Create .env with DATABASE_URL, JWT_SECRET, and GITHUB_TOKEN
+    uvicorn app.main:app --reload
+    ```
+
+3.  **Frontend Setup (`apps/web`):**
+    ```bash
+    cd ../web
+    npm install --legacy-peer-deps
+    # Create .env.local with NEXT_PUBLIC_API_URL and NEXT_PUBLIC_ESCROW_APP_ID
+    npm run dev
+    ```
 
 ---
 
 ## 🤝 Contributors
 
-Optimized and built for the **Algorand Hackathon 2026**.
+Optimized and built for the **Algorand Global Hackathon**. Designed with ❤️ by **Antigravity**.

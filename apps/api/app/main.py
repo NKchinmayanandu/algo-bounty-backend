@@ -7,22 +7,33 @@ from app.db.session import Base, engine
 from app.realtime.tasks import manager
 import uvicorn
 
-# Create Database tables with error handling to prevent startup crashes
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"Database table creation failed: {e}")
-
 app = FastAPI(title="Trustless Task Bounty API")
+
+# We list EVERY combination including the ones we saw in your logs
+CORS_ORIGINS = [
+    "http://localhost:3000",
+    "https://algo-bounty.vercel.app",
+    "https://algo-bounty-onmdstank-yaseen-711s-projects.vercel.app",
+    "https://algo-bounty-git-main-yaseen-711s-projects.vercel.app",
+    "https://algo-bounty-yaseen-711s-projects.vercel.app"
+]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"https://algo-bounty.*\.vercel\.app",
-    allow_origins=["http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    # Only try to create tables after app is up, so we don't block the port check
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Startup DB Error: {e}")
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(tasks_router, prefix="/tasks", tags=["tasks"])

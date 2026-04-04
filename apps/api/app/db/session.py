@@ -7,15 +7,15 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# On cloud platforms (like Render), we must be very explicit about SSL modes for psycopg2
+# Cloud-safe engine configuration
 engine_args = {
-    "pool_pre_ping": True, # Automatically reconnect if connection dies
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+    "connect_args": {
+        "sslmode": "require",
+        "connect_timeout": 5 # Don't hang forever if port is blocked
+    }
 }
-if DATABASE_URL and ("sslmode" not in DATABASE_URL):
-    engine_args["connect_args"] = {"sslmode": "require"}
-elif DATABASE_URL and "sslmode=require" in DATABASE_URL:
-    # Even if it's in the string, some drivers on Linux need it in connect_args too
-    engine_args["connect_args"] = {"sslmode": "require"}
 
 engine = create_engine(DATABASE_URL, **engine_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -4,7 +4,8 @@ sqlalchemy
 psycopg2-binary
 alembic
 pyjwt
-passlib[bcrypt]
+passlib
+bcrypt==4.0.1
 websockets
 pygithub
 py-algorand-sdk

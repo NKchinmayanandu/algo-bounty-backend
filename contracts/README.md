@@ -37,3 +37,15 @@ The "Finality Layer" of the platform. Using the Algorand Virtual Machine (AVM) f
 - `create_task()`: Initializes the task record in on-chain Box storage.
 - `assign_worker()`: Registers the contributor as the valid recipient.
 - `release_payment()`: Executes an inner transaction to the worker address.
+
+---
+
+## 🔐 Security Model
+
+The protocol is designed with a "Security-First" approach to ensure participant safety:
+
+- **🔒 Funds Locked On-Chain:** Once a bounty is funded, the ALGOs are held by the Smart Contract account itself. They cannot be withdrawn by anyone except the verified worker upon completion.
+- **🚫 Backend Isolation:** The Backend API **cannot** steal or divert funds. It only acts as an "Oracle" or "Validator" to announce work completion. The final release still requires a cryptographic signature from the Creator.
+- **🔑 Wallet Signatures Required:** Every critical state change (Funding, Claiming, Releasing) requires an explicit signature from the user's **Pera Wallet**.
+- **🛡️ Escrow Safety:** The contract uses Atomic Grouping to ensure that tasks cannot be created in an "unfunded" state, protecting workers from phantom bounties.
+

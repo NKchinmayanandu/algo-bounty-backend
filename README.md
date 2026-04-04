@@ -12,7 +12,7 @@ The Bounty Escrow Agent is a decentralized platform that replaces manual payment
 
 [![Live Deployment](https://img.shields.io/badge/Live-Website-FF4B4B?style=for-the-badge&logo=vercel)](https://algo-bounty.vercel.app)
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js%2014-black?style=for-the-badge&logo=next.js)](apps/web/README.md)
-[![Backend](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)](https://algo-bounty-vr2b.onrender.com)
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-green?style=for-the-badge&logo=fastapi)](apps/api/README.md)
 [![Smart Contracts](https://img.shields.io/badge/Smart%20Contracts-Algorand%20PyTeal-blue?style=for-the-badge&logo=algorand)](contracts/README.md)
 [![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
 

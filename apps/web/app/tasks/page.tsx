@@ -1,9 +1,10 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from 'next/link'
 import { useWallet } from '@txnlab/use-wallet-react'
 import { fetchWithAuth } from '@/lib/api'
 import { constructClaimTx, algodClient } from '@/lib/algorand'
+import { useTaskWebSocket } from '@/lib/useTaskWebSocket'
 
 const STATUS_STYLES: Record<string, string> = {
   OPEN:      'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -22,12 +23,17 @@ export default function TasksPage() {
   const [search, setSearch] = useState('')
   const { signTransactions, activeAccount } = useWallet()
 
-  useEffect(() => {
+  const loadTasks = useCallback(() => {
     fetch('http://localhost:8000/tasks/')
       .then(res => res.json())
       .then(data => { if(Array.isArray(data)) setTasks(data) })
       .catch(console.error)
   }, [])
+
+  useEffect(() => { loadTasks() }, [loadTasks])
+
+  // Auto-refresh when backend broadcasts a task event
+  useTaskWebSocket(() => { loadTasks() })
 
   const handleClaim = async (task: any) => {
     if (!activeAccount) { alert("Please connect your wallet first"); return; }

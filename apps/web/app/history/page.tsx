@@ -4,6 +4,7 @@ import { useAuthStore } from "@/lib/auth"
 import { fetchWithAuth } from "@/lib/api"
 import { useWallet } from "@txnlab/use-wallet-react"
 import { constructReleaseTx, algodClient } from "@/lib/algorand"
+import { useTaskWebSocket } from '@/lib/useTaskWebSocket'
 
 const STATUS_STYLES: Record<string, string> = {
   OPEN:      'bg-blue-500/10 text-blue-400 border border-blue-500/20',
@@ -23,6 +24,9 @@ export default function History() {
     if (!user) return
     loadHistory()
   }, [user])
+
+  // Auto-refresh when backend broadcasts a task event
+  useTaskWebSocket(() => { if (user) loadHistory() })
 
   const loadHistory = async () => {
     try {

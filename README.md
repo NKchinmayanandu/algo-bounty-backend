@@ -17,7 +17,7 @@ The Bounty Escrow Agent is a decentralized platform that replaces manual payment
 
 ## ✨ Key Features
 
-- **🛡️ On-Chain Trustless Escrow:** Rewards are locked in an Algorand Smart Contract (App ID 758200883) at creation. No middleman holds the funds.
+- **🛡️ On-Chain Trustless Escrow:** Rewards are locked in an Algorand Smart Contract  at creation. No middleman holds the funds.
 - **⚡ Real-Time Synchronization:** Integrated **WebSockets** ensure that when a task is funded, claimed, or paid, every user's dashboard updates instantly without refreshing.
 - **🤖 Automated Verification:** The backend agent validates GitHub repository submissions before allowing the "Release Payment" step.
 - **📱 Pera Wallet Integration:** Seamlessly connect via the **Pera Wallet Mobile App** (Testnet mode) to sign transactions securely.

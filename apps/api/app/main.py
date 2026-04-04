@@ -16,6 +16,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "https://algo-bounty.vercel.app",
         "https://algo-bounty-onmdstank-yaseen-711s-projects.vercel.app",
         "https://algo-bounty-git-main-yaseen-711s-projects.vercel.app"
     ],

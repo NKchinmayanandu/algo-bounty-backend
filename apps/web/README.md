@@ -36,9 +36,7 @@ apps/web/
    ```
 2. Set Environment Variables in `.env.local`:
    ```bash
-   NEXT_PUBLIC_API_URL=http://localhost:8000
-   NEXT_PUBLIC_WS_URL=ws://localhost:8000
-   NEXT_PUBLIC_ESCROW_APP_ID=758200883
+  
    ```
 3. Start the dev server:
    ```bash

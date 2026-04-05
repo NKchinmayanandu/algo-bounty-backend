@@ -1,0 +1,4 @@
+pyteal
+beaker-pyteal
+py-algorand-sdk
+python-dotenv

@@ -59,6 +59,21 @@ class SubmissionResponse(BaseModel):
     block_round: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
+# Rating Schemas
+class RatingCreate(BaseModel):
+    stars: int
+    review: Optional[str] = ""
+
+class RatingResponse(BaseModel):
+    id: int
+    task_id: int
+    rater_id: int
+    rated_id: int
+    stars: int
+    review: Optional[str] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
 class TaskDetail(TaskBase):
     submission: Optional[SubmissionResponse] = None
     creator: UserResponse

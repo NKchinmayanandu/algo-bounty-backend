@@ -4,8 +4,8 @@ from typing import List
 from datetime import datetime
 from pydantic import BaseModel
 from app.db.session import get_db
-from app.models.base import Task, TaskStatusEnum, User, Submission, VerificationStatusEnum
-from app.schemas.base import TaskCreate, TaskDetail, TaskBase, TaskSubmission, SubmissionResponse
+from app.models.base import Task, TaskStatusEnum, User, Submission, VerificationStatusEnum, Rating
+from app.schemas.base import TaskCreate, TaskDetail, TaskBase, TaskSubmission, SubmissionResponse, RatingCreate, RatingResponse
 from app.services.auth import get_current_user
 from app.services.algorand import assign_worker, release_payment
 from app.services.github import verify_github_repo
@@ -151,3 +151,50 @@ async def perform_release_payment(task_id: int, current_user: User = Depends(get
     
     await manager.broadcast({"event": "payment_released", "task_id": task.id})
     return task
+
+@router.post("/{task_id}/rate", response_model=RatingResponse)
+async def rate_task(task_id: int, payload: RatingCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.creator_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the task creator can rate the worker")
+    if task.status not in (TaskStatusEnum.VERIFIED, TaskStatusEnum.PAID):
+        raise HTTPException(status_code=400, detail="Task must be VERIFIED or PAID to rate")
+    if not task.assignee_user_id:
+        raise HTTPException(status_code=400, detail="No worker assigned to this task")
+    if payload.stars < 1 or payload.stars > 5:
+        raise HTTPException(status_code=400, detail="Stars must be between 1 and 5")
+    
+    # Check if already rated
+    existing = db.query(Rating).filter(Rating.task_id == task_id, Rating.rater_id == current_user.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already rated this task")
+    
+    rating = Rating(
+        task_id=task_id,
+        rater_id=current_user.id,
+        rated_id=task.assignee_user_id,
+        stars=payload.stars,
+        review=payload.review or None
+    )
+    db.add(rating)
+    
+    # Update worker's average rating
+    worker = db.query(User).filter(User.id == task.assignee_user_id).first()
+    if worker:
+        new_count = worker.rating_count + 1
+        new_avg = ((worker.rating_avg * worker.rating_count) + payload.stars) / new_count
+        worker.rating_avg = round(new_avg, 2)
+        worker.rating_count = new_count
+    
+    db.commit()
+    db.refresh(rating)
+    return rating
+
+@router.get("/{task_id}/rating", response_model=RatingResponse)
+def get_task_rating(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    rating = db.query(Rating).filter(Rating.task_id == task_id, Rating.rater_id == current_user.id).first()
+    if not rating:
+        raise HTTPException(status_code=404, detail="No rating found")
+    return rating

@@ -80,5 +80,8 @@ class Rating(Base):
     rater_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     rated_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     stars = Column(Integer, nullable=False)
+    review = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     task = relationship("Task", back_populates="ratings")
+

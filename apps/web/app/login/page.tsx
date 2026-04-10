@@ -14,10 +14,14 @@ export default function Login() {
     e.preventDefault();
     try {
       const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+
       const res = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
       });
       if (res.ok) {
         const data = await res.json();
